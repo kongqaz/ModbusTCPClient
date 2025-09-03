@@ -1,0 +1,7 @@
+{
+  "broker": "tcp://localhost:1883",
+  "username": "",
+  "password": "",
+  "clientId": "mqtt_modbus_pub",
+  "topic": "modbusTCP/data"
+}
