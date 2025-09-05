@@ -67,7 +67,7 @@ public class ModbusMqttClient {
     }
 
     private final Gson gson = new Gson();
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     private MqttClient mqttClient;
     private TCPMasterConnection modbusConnection;
