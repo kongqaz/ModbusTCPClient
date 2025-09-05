@@ -8,42 +8,48 @@
 			"deviceAddr": "1",
 			"functionCode": "01",
 			"startRegister": "100",
-			"registerCount": "1"
+			"registerCount": "1",
+			"dataType": "bool"
 		},
 		{
 			"name": "name2",
 			"deviceAddr": "1",
 			"functionCode": "03",
 			"startRegister": "101",
-			"registerCount": "2"
+			"registerCount": "2",
+			"dataType": "float"
 		},
 		{
 			"name": "name3",
 			"deviceAddr": "1",
 			"functionCode": "03",
 			"startRegister": "103",
-			"registerCount": "2"
+			"registerCount": "2",
+			"dataType": "float"
 		},
 		{
 			"name": "name4",
 			"deviceAddr": "1",
 			"functionCode": "03",
 			"startRegister": "105",
-			"registerCount": "2"
+			"registerCount": "2",
+			"dataType": "float"
 		},
 		{
 			"name": "name5",
 			"deviceAddr": "1",
 			"functionCode": "03",
 			"startRegister": "107",
-			"registerCount": "2"
+			"registerCount": "2",
+			"dataType": "float"
 		},
 		{
 			"name": "name6",
 			"deviceAddr": "1",
 			"functionCode": "03",
 			"startRegister": "109",
-			"registerCount": "2"
+			"registerCount": "2",
+			"dataType": "float"
 		}
 	]
 }

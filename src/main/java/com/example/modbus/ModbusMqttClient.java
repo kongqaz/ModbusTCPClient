@@ -14,6 +14,7 @@ import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -47,6 +48,7 @@ public class ModbusMqttClient {
         public String functionCode;
         public String startRegister;
         public String registerCount;
+        public String dataType;
     }
 
     // 数据点结果类
@@ -228,7 +230,7 @@ public class ModbusMqttClient {
                     int unitId = Integer.parseInt(point.deviceAddr);
 
                     log.info("\n--- 读取点位: " + point.name + " ---");
-                    String value = readModbusValue(transaction, functionCode, startReg, regCount, unitId);
+                    String value = readModbusValue(transaction, functionCode, startReg, regCount, unitId, point.dataType);
                     dataPoints.add(new DataPoint(point.name, value, updateTime));
                     log.info("读取结果: " + point.name + " = " + value);
                 } catch (Exception e) {
@@ -239,7 +241,7 @@ public class ModbusMqttClient {
 
             // 发布到MQTT
             String jsonData = gson.toJson(dataPoints);
-            MqttMessage message = new MqttMessage(jsonData.getBytes());
+            MqttMessage message = new MqttMessage(jsonData.getBytes(StandardCharsets.UTF_8));
             message.setQos(0);
             mqttClient.publish(topic, message);
             log.info("\n已发布数据到MQTT主题: " + topic);
@@ -252,7 +254,7 @@ public class ModbusMqttClient {
 
     // 读取Modbus值
     private String readModbusValue(ModbusTCPTransaction transaction, int functionCode,
-                                          int startReg, int regCount, int unitId) throws Exception {
+                                          int startReg, int regCount, int unitId, String dataType) throws Exception {
         switch (functionCode) {
             case 1: // 读线圈状态
                 ReadCoilsRequest coilRequest = new ReadCoilsRequest();
@@ -272,10 +274,17 @@ public class ModbusMqttClient {
                 printModbusResponse(coilResponse, "读线圈状态响应");
 
                 StringBuilder coilResult = new StringBuilder();
-                for (int i = 0; i < Math.min(regCount, coilResponse.getBitCount()); i++) {
+                int realCount = Math.min(regCount, coilResponse.getBitCount());
+                for (int i = 0; i < realCount; i++) {
                     coilResult.append(coilResponse.getCoilStatus(i) ? "1" : "0");
                     if (i < regCount - 1) coilResult.append(",");
                 }
+
+                // 根据dataType处理返回值
+                if ("bool".equals(dataType) && realCount == 1) {
+                    return coilResponse.getCoilStatus(0) ? "1" : "0";
+                }
+
                 return coilResult.toString();
 
             case 3: // 读保持寄存器
@@ -295,12 +304,23 @@ public class ModbusMqttClient {
                 // 打印接收报文
                 printModbusResponse(regResponse, "读保持寄存器响应");
 
-                StringBuilder regResult = new StringBuilder();
-                for (int i = 0; i < Math.min(regCount, regResponse.getWordCount()); i++) {
-                    regResult.append(regResponse.getRegisterValue(i));
-                    if (i < regCount - 1) regResult.append(",");
+                // 根据数据类型处理返回值
+                if ("float".equals(dataType) && regCount == 2) {
+                    // 处理float类型，大端模式
+                    int highWord = regResponse.getRegisterValue(0);
+                    int lowWord = regResponse.getRegisterValue(1);
+                    int intValue = (highWord << 16) | lowWord;
+                    float floatValue = Float.intBitsToFloat(intValue);
+                    return String.format("%.6f", floatValue);
+                } else {
+                    // 默认处理方式
+                    StringBuilder regResult = new StringBuilder();
+                    for (int i = 0; i < Math.min(regCount, regResponse.getWordCount()); i++) {
+                        regResult.append(regResponse.getRegisterValue(i));
+                        if (i < regCount - 1) regResult.append(",");
+                    }
+                    return regResult.toString();
                 }
-                return regResult.toString();
 
             default:
                 return "UNSUPPORTED_FUNCTION_CODE";
