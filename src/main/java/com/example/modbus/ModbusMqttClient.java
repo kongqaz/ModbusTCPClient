@@ -11,8 +11,10 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
 
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
@@ -146,14 +148,14 @@ public class ModbusMqttClient {
 
     // 读取MQTT配置
     private MqttConfig loadMqttConfig(String configFile) throws IOException {
-        try (FileReader reader = new FileReader(configFile)) {
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, MqttConfig.class);
         }
     }
 
     // 读取点位配置
     private PointConfig loadPointConfig(String configFile) throws IOException {
-        try (FileReader reader = new FileReader(configFile)) {
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(configFile), StandardCharsets.UTF_8)) {
             return gson.fromJson(reader, PointConfig.class);
         }
     }
@@ -337,15 +339,15 @@ public class ModbusMqttClient {
             int functionCode = request.getFunctionCode();
 
             // 构造完整的请求报文
-            byte[] fullRequest = new byte[requestBytes.length + 7];
+            byte[] fullRequest = new byte[requestBytes.length + 8];
 
             // 添加MBAP头部
             fullRequest[0] = (byte) (transactionId >> 8);
             fullRequest[1] = (byte) (transactionId & 0xFF);
             fullRequest[2] = (byte) (protocolId >> 8);
             fullRequest[3] = (byte) (protocolId & 0xFF);
-            fullRequest[4] = (byte) ((requestBytes.length + 1) >> 8);
-            fullRequest[5] = (byte) ((requestBytes.length + 1) & 0xFF);
+            fullRequest[4] = (byte) ((requestBytes.length + 2) >> 8);
+            fullRequest[5] = (byte) ((requestBytes.length + 2) & 0xFF);
             fullRequest[6] = (byte) unitId;
 
             // 添加PDU
@@ -368,15 +370,15 @@ public class ModbusMqttClient {
             int functionCode = response.getFunctionCode();
 
             // 构造完整的响应报文
-            byte[] fullResponse = new byte[responseBytes.length + 7];
+            byte[] fullResponse = new byte[responseBytes.length + 8];
 
             // 添加MBAP头部
             fullResponse[0] = (byte) (transactionId >> 8);
             fullResponse[1] = (byte) (transactionId & 0xFF);
             fullResponse[2] = (byte) (protocolId >> 8);
             fullResponse[3] = (byte) (protocolId & 0xFF);
-            fullResponse[4] = (byte) ((responseBytes.length + 1) >> 8);
-            fullResponse[5] = (byte) ((responseBytes.length + 1) & 0xFF);
+            fullResponse[4] = (byte) ((responseBytes.length + 2) >> 8);
+            fullResponse[5] = (byte) ((responseBytes.length + 2) & 0xFF);
             fullResponse[6] = (byte) unitId;
 
             // 添加PDU
