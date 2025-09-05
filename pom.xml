@@ -74,7 +74,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.example.modbus.ModbusMqttClient</mainClass>
+                                    <mainClass>com.example.Application</mainClass>
                                 </transformer>
                             </transformers>
                             <!-- 排除签名文件 -->

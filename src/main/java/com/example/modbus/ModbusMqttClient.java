@@ -62,14 +62,14 @@ public class ModbusMqttClient {
         }
     }
 
-    private static final Gson gson = new Gson();
-    private static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private final Gson gson = new Gson();
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
 
-    private static MqttClient mqttClient;
-    private static TCPMasterConnection modbusConnection;
-    private static ModbusTCPTransaction transaction;
+    private MqttClient mqttClient;
+    private TCPMasterConnection modbusConnection;
+    private ModbusTCPTransaction transaction;
 
-    public static void main(String[] args) {
+    public void run() {
         MqttConfig mqttConfig = null;
         PointConfig pointConfig = null;
         try {
@@ -143,21 +143,21 @@ public class ModbusMqttClient {
     }
 
     // 读取MQTT配置
-    private static MqttConfig loadMqttConfig(String configFile) throws IOException {
+    private MqttConfig loadMqttConfig(String configFile) throws IOException {
         try (FileReader reader = new FileReader(configFile)) {
             return gson.fromJson(reader, MqttConfig.class);
         }
     }
 
     // 读取点位配置
-    private static PointConfig loadPointConfig(String configFile) throws IOException {
+    private PointConfig loadPointConfig(String configFile) throws IOException {
         try (FileReader reader = new FileReader(configFile)) {
             return gson.fromJson(reader, PointConfig.class);
         }
     }
 
     // 连接Modbus
-    private static TCPMasterConnection connectModbus(PointConfig config) throws Exception {
+    private TCPMasterConnection connectModbus(PointConfig config) throws Exception {
         InetAddress address = InetAddress.getByName(config.serverIp);
         TCPMasterConnection connection = new TCPMasterConnection(address);
         connection.setPort(config.serverPort);
@@ -168,7 +168,7 @@ public class ModbusMqttClient {
     }
 
     // 确保连接有效
-    private static void ensureConnections(MqttConfig mqttConfig, PointConfig pointConfig) {
+    private void ensureConnections(MqttConfig mqttConfig, PointConfig pointConfig) {
         // 检查MQTT连接
         try {
             if (mqttClient == null) {
@@ -195,7 +195,7 @@ public class ModbusMqttClient {
     }
 
     // 连接MQTT Broker
-    private static MqttClient connectMqtt(MqttConfig config) throws Exception {
+    private MqttClient connectMqtt(MqttConfig config) throws Exception {
         MqttClient client = new MqttClient(config.broker, config.clientId, new MemoryPersistence());
         MqttConnectOptions options = new MqttConnectOptions();
         options.setCleanSession(true);
@@ -214,7 +214,7 @@ public class ModbusMqttClient {
     }
 
     // 读取Modbus数据并发布到MQTT
-    private static void readAndPublishData(PointConfig config, MqttClient mqttClient, String topic) throws Exception {
+    private void readAndPublishData(PointConfig config, MqttClient mqttClient, String topic) throws Exception {
         try {
             List<DataPoint> dataPoints = new ArrayList<>();
             String updateTime = dateFormat.format(new Date());
@@ -251,7 +251,7 @@ public class ModbusMqttClient {
     }
 
     // 读取Modbus值
-    private static String readModbusValue(ModbusTCPTransaction transaction, int functionCode,
+    private String readModbusValue(ModbusTCPTransaction transaction, int functionCode,
                                           int startReg, int regCount, int unitId) throws Exception {
         switch (functionCode) {
             case 1: // 读线圈状态
@@ -308,7 +308,7 @@ public class ModbusMqttClient {
     }
 
     // 打印Modbus请求报文
-    private static void printModbusRequest(ModbusRequest request, String description) {
+    private void printModbusRequest(ModbusRequest request, String description) {
         try {
             byte[] requestBytes = request.getMessage();
             int transactionId = request.getTransactionID();
@@ -339,7 +339,7 @@ public class ModbusMqttClient {
     }
 
     // 打印Modbus响应报文
-    private static void printModbusResponse(ModbusResponse response, String description) {
+    private void printModbusResponse(ModbusResponse response, String description) {
         try {
             byte[] responseBytes = response.getMessage();
             int transactionId = response.getTransactionID();
@@ -370,7 +370,7 @@ public class ModbusMqttClient {
     }
 
     // 将字节数组转换为十六进制字符串
-    private static String bytesToHex(byte[] bytes) {
+    private String bytesToHex(byte[] bytes) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < bytes.length; i++) {
             result.append(String.format("%02X", bytes[i]));
