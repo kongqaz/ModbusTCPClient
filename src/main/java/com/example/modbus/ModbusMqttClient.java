@@ -86,14 +86,34 @@ public class ModbusMqttClient {
             return;
         }
 
-        // 初始化连接
-        try {
-            mqttClient = connectMqtt(mqttConfig);
-            modbusConnection = connectModbus(pointConfig);
-            transaction = new ModbusTCPTransaction(modbusConnection);
-        } catch (Exception e) {
-            log.error("初始化连接失败: ", e);
-            return;
+        while(true){
+            try {
+                mqttClient = connectMqtt(mqttConfig);
+                break;
+            } catch (Exception e) {
+                log.error("connectMqtt fail: ", e);
+                try{
+                    Thread.sleep(5000);
+                } catch (Exception ex) {
+                    log.error("sleep fail:", ex);
+                }
+            }
+        }
+
+        while(true) {
+            // 初始化连接
+            try {
+                modbusConnection = connectModbus(pointConfig);
+                transaction = new ModbusTCPTransaction(modbusConnection);
+                break;
+            } catch (Exception e) {
+                log.error("Modebus connect fail:", e);
+                try{
+                    Thread.sleep(5000);
+                } catch (Exception ex) {
+                    log.error("sleep fail:", ex);
+                }
+            }
         }
 
         // 将配置保存为final变量，供lambda表达式使用
@@ -134,6 +154,7 @@ public class ModbusMqttClient {
             try {
                 if (mqttClient != null && mqttClient.isConnected()) {
                     mqttClient.disconnect();
+                    mqttClient.close();
                 }
                 if (modbusConnection != null) {
                     modbusConnection.close();
@@ -162,12 +183,22 @@ public class ModbusMqttClient {
 
     // 连接Modbus
     private TCPMasterConnection connectModbus(PointConfig config) throws Exception {
-        InetAddress address = InetAddress.getByName(config.serverIp);
-        TCPMasterConnection connection = new TCPMasterConnection(address);
-        connection.setPort(config.serverPort);
-        connection.connect();
-        connection.setTimeout(5000); // 设置5秒超时
-        log.info("已连接到Modbus TCP服务器: " + config.serverIp + ":" + config.serverPort);
+        TCPMasterConnection connection = null;
+        try {
+            InetAddress address = InetAddress.getByName(config.serverIp);
+            connection = new TCPMasterConnection(address);
+            connection.setPort(config.serverPort);
+            connection.connect();
+            connection.setTimeout(5000); // 设置5秒超时
+            log.info("已连接到Modbus TCP服务器: " + config.serverIp + ":" + config.serverPort);
+        } catch (Exception e) {
+            log.error("连接Modbus TCP服务器失败: ", e);
+            if(connection != null){
+                connection.close();
+                log.info("已关闭Modbus连接");
+            }
+            throw e;
+        }
         return connection;
     }
 
@@ -200,20 +231,30 @@ public class ModbusMqttClient {
 
     // 连接MQTT Broker
     private MqttClient connectMqtt(MqttConfig config) throws Exception {
-        MqttClient client = new MqttClient(config.broker, config.clientId, new MemoryPersistence());
-        MqttConnectOptions options = new MqttConnectOptions();
-        options.setCleanSession(true);
-        options.setAutomaticReconnect(true); // 启用自动重连
-        options.setConnectionTimeout(15); // 15秒连接超时
-        options.setKeepAliveInterval(30); // 30秒心跳间隔
+        MqttClient client = null;
+        try {
+            client = new MqttClient(config.broker, config.clientId, new MemoryPersistence());
+            MqttConnectOptions options = new MqttConnectOptions();
+            options.setCleanSession(true);
+            options.setAutomaticReconnect(true); // 启用自动重连
+            options.setConnectionTimeout(15); // 15秒连接超时
+            options.setKeepAliveInterval(30); // 30秒心跳间隔
 
-        if (!config.username.isEmpty() && !config.password.isEmpty()) {
-            options.setUserName(config.username);
-            options.setPassword(config.password.toCharArray());
+            if (!config.username.isEmpty() && !config.password.isEmpty()) {
+                options.setUserName(config.username);
+                options.setPassword(config.password.toCharArray());
+            }
+
+            client.connect(options);
+            log.info("已连接到MQTT Broker: " + config.broker);
+        } catch (Exception e) {
+            log.error("MQTT连接失败: ", e);
+            if(client != null){
+                client.close();
+                log.info("已关闭MQTT连接");
+            }
+            throw e;
         }
-
-        client.connect(options);
-        log.info("已连接到MQTT Broker: " + config.broker);
         return client;
     }
 
